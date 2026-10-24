@@ -8,9 +8,18 @@ Full Screen Preview
 <img width="1280" height="650" alt="full screen glow" src="https://github.com/user-attachments/assets/1bf96f34-a5dd-4f29-9f50-aadcbe2f4a40" />
 
 
-# Webtoon & Manhwa Ambient Light 🌌📖
 
-> **A real-time, hardware-accelerated ambient lighting Chrome Extension for desktop manhwa, webtoon, and manga readers.**
+<div align="center">
+
+# 🌌 Webtoon & Manhwa Ambient Light
+**Cinema-grade, 60fps real-time ambient lighting for vertical-scrolling comics, manhwa, and webtoons.**
+
+[![Latest Release](https://img.shields.io/github/v/release/KatenShinMori/webtoon-manhwa-ambient-light?style=for-the-badge&color=a855f7)](https://github.com/KatenShinMori/webtoon-manhwa-ambient-light/releases/latest)
+[![GitHub Stars](https://img.shields.io/github/stars/KatenShinMori/webtoon-manhwa-ambient-light?style=for-the-badge&color=f59e0b)](https://github.com/KatenShinMori/webtoon-manhwa-ambient-light/stargazers)
+[![Manifest V3](https://img.shields.io/badge/Chrome-Manifest_V3-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/KatenShinMori/webtoon-manhwa-ambient-light/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
+
+</div>
 
 Inspired by **"[Corsair LS100](https://www.corsair.com/us/en)"** and **"[Ambient Light for YouTube](https://chromewebstore.google.com/detail/paponcgjfojgemddooebbgniglhkajkj?utm_source=item-share-cb)"**, this extension illuminates the pitch-black or harsh-white empty margins on widescreen desktop displays when reading vertically stacked webcomics (Asura Scans, MangaDex, Webtoons, Flame Comics, Reaper Scans, Bato.to, etc.).
 
