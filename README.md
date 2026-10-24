@@ -2,7 +2,7 @@
 
 > **A real-time, hardware-accelerated ambient lighting Chrome Extension for desktop manhwa, webtoon, and manga readers.**
 
-Inspired by **"my Corsair LS100"** and **"Ambient Light for YouTube"**, this extension illuminates the pitch-black or harsh-white empty margins on widescreen desktop displays when reading vertically stacked webcomics (Asura Scans, MangaDex, Webtoons, Flame Comics, Reaper Scans, Bato.to, etc.).
+Inspired by **"my Corsair LS100"** and **"[Ambient Light for YouTube](https://chromewebstore.google.com/detail/paponcgjfojgemddooebbgniglhkajkj?utm_source=item-share-cb)"**, this extension illuminates the pitch-black or harsh-white empty margins on widescreen desktop displays when reading vertically stacked webcomics (Asura Scans, MangaDex, Webtoons, Flame Comics, Reaper Scans, Bato.to, etc.).
 
 ---
 
