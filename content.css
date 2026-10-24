@@ -1,0 +1,304 @@
+/**
+ * Webtoon & Manhwa Ambient Light
+ * Content Stylesheet - V2.0 Enhanced Engine
+ */
+
+:root {
+  --manhwa-blur: 90px;
+  --manhwa-intensity: 0.65;
+  --manhwa-vibrance: 1.8;
+  --manhwa-spread: 280px;
+}
+
+/* ============================================================
+   1. FIXED AMBIENT STAGE & BACKDROP
+   ============================================================ */
+
+/* Deep dark cinema backdrop for force-dark mode */
+#manhwa-ambient-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  z-index: 0 !important;
+  background-color: #070709 !important;
+  display: none;
+}
+
+body.manhwa-ambient-force-dark #manhwa-ambient-backdrop {
+  display: block !important;
+}
+
+/* The Fixed Ambient Stage: z-index 1 sits above page background,
+   directly behind comic panels (z-index 2) and navbars (z-index 10+) */
+#manhwa-ambient-stage {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  z-index: 1 !important;
+  overflow: hidden !important;
+  contain: strict !important;
+  transform: translateZ(0) !important;
+  background-color: transparent !important;
+}
+
+/* Base Canvas for ambient layers */
+.manhwa-ambient-canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  transform: translateZ(0);
+  will-change: transform, filter;
+  transition: opacity 0.25s ease-out;
+}
+
+/* ============================================================
+   2. DUAL-LAYER DEPTH GLOW PIPELINE
+   ============================================================ */
+
+/* Outer Atmosphere Layer: Driven dynamically by CSS variables & inline styles */
+.ambient-layer-atmosphere {
+  filter: blur(var(--blur, var(--manhwa-blur, 90px)))
+          saturate(var(--vibrance, var(--manhwa-vibrance, 1.8)))
+          brightness(var(--intensity, var(--manhwa-intensity, 0.65)));
+  opacity: calc(var(--intensity, var(--manhwa-intensity, 0.65)) * 0.75);
+}
+
+/* Inner Core Layer: Tighter spread, crisper blur, punchy edge accuracy */
+.ambient-layer-core {
+  filter: blur(calc(var(--blur, var(--manhwa-blur, 90px)) * 0.45))
+          saturate(var(--vibrance, var(--manhwa-vibrance, 1.8)))
+          brightness(var(--intensity, var(--manhwa-intensity, 0.65)));
+  opacity: calc(var(--intensity, var(--manhwa-intensity, 0.65)) * 0.95);
+}
+
+/* Single-layer fallback when dual-layer is disabled */
+body:not(.manhwa-dual-layer-active) .ambient-layer-core {
+  display: none !important;
+}
+
+body:not(.manhwa-dual-layer-active) .ambient-layer-atmosphere {
+  filter: blur(var(--blur, var(--manhwa-blur, 90px)))
+          saturate(var(--vibrance, var(--manhwa-vibrance, 1.8)))
+          brightness(var(--intensity, var(--manhwa-intensity, 0.65)));
+  opacity: var(--intensity, var(--manhwa-intensity, 0.65));
+}
+
+/* ============================================================
+   3. AMBIENT SLICE CONTAINERS & CLONED IMAGES
+   ============================================================ */
+.manhwa-ambient-slice,
+.manhwa-clone-wrapper {
+  position: absolute !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  will-change: top, left, width, height;
+}
+
+/* Horizontal Downsample + Pre-Stretch Blur:
+   Images render at 64px width and are blurred by 18px BEFORE being scaled up horizontally.
+   This horizontally melts 100% of speech-bubble polygon outlines and text lettering. */
+.manhwa-ambient-slice img,
+.manhwa-clone-wrapper img,
+.manhwa-clone-img {
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 64px !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  object-fit: fill !important;
+  filter: blur(18px) !important;
+  transform-origin: left center !important;
+  will-change: transform;
+}
+
+/* When Suppress Glare is ON, apply the white-crushing SVG filter at source level */
+body.manhwa-anti-glare-active .manhwa-ambient-slice img,
+body.manhwa-anti-glare-active .manhwa-clone-wrapper img,
+body.manhwa-anti-glare-active .manhwa-clone-img {
+  filter: url(#manhwa-highlight-guard) blur(18px) !important;
+}
+
+/* Halo Mode - Smooth horizontal gradient feathering */
+.ambient-layer-atmosphere .manhwa-ambient-slice.mode-halo,
+.ambient-layer-atmosphere .manhwa-clone-wrapper.mode-halo {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
+}
+
+.ambient-layer-core .manhwa-ambient-slice.mode-halo,
+.ambient-layer-core .manhwa-clone-wrapper.mode-halo {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 25%,
+    black 75%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 25%,
+    black 75%,
+    transparent 100%
+  );
+}
+
+/* Full-Bleed Mode - Edge-to-edge monitor ambient */
+.manhwa-ambient-slice.mode-full-bleed,
+.manhwa-clone-wrapper.mode-full-bleed {
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+/* ============================================================
+   4. SOURCE COMIC IMAGES ELEVATION & CRISPNESS
+   ============================================================ */
+img.manhwa-ambient-source {
+  position: relative !important;
+  z-index: 2 !important;
+  background-color: #0b0c10;
+  transition: box-shadow 0.25s ease;
+}
+
+/* Lateral elevation shadow separating comic panels from glow */
+body.manhwa-ambient-active.manhwa-shadow-active img.manhwa-ambient-source {
+  box-shadow: -14px 0 34px -4px rgba(0, 0, 0, 0.78),
+               14px 0 34px -4px rgba(0, 0, 0, 0.78) !important;
+}
+
+/* ============================================================
+   5. ANCESTOR CONTAINER TRANSPARENCY
+   ============================================================ */
+body.manhwa-ambient-active [data-manhwa-ambient-container="true"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Known site container resets */
+body.manhwa-ambient-active .reading-content,
+body.manhwa-ambient-active .reader-area,
+body.manhwa-ambient-active #_imageList,
+body.manhwa-ambient-active .rd-article,
+body.manhwa-ambient-active .chapter-container,
+body.manhwa-ambient-active .reader--container,
+body.manhwa-ambient-active #chapter-images,
+body.manhwa-ambient-active #viewer,
+body.manhwa-ambient-active .entry-content-single,
+body.manhwa-ambient-active main,
+body.manhwa-ambient-active article {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* ============================================================
+   6. FORCE DARK BACKGROUND OVERRIDES
+   ============================================================ */
+body.manhwa-ambient-force-dark,
+html.manhwa-ambient-force-dark {
+  background-color: #070709 !important;
+  color-scheme: dark !important;
+}
+
+/* ============================================================
+   7. ZEN CINEMA MODE (AUTO-DIM DISTRACTING UI)
+   ============================================================ */
+body.manhwa-zen-active .manhwa-zen-dimmed,
+body.manhwa-zen-active header:not(.reader-panel),
+body.manhwa-zen-active [class*="discord"]:not(.manhwa-ambient-ui),
+body.manhwa-zen-active [id*="discord"]:not(.manhwa-ambient-ui),
+body.manhwa-zen-active [class*="report"]:not(.manhwa-ambient-ui),
+body.manhwa-zen-active [class*="floating"]:not(.manhwa-ambient-ui),
+body.manhwa-zen-active [class*="social"]:not(.manhwa-ambient-ui),
+body.manhwa-zen-active [class*="donate"]:not(.manhwa-ambient-ui),
+body.manhwa-zen-active [class*="patreon"]:not(.manhwa-ambient-ui) {
+  opacity: 0.08 !important;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body.manhwa-zen-active .manhwa-zen-dimmed:hover,
+body.manhwa-zen-active header:hover,
+body.manhwa-zen-active [class*="discord"]:hover,
+body.manhwa-zen-active [id*="discord"]:hover,
+body.manhwa-zen-active [class*="report"]:hover,
+body.manhwa-zen-active [class*="floating"]:hover,
+body.manhwa-zen-active [class*="social"]:hover,
+body.manhwa-zen-active [class*="donate"]:hover,
+body.manhwa-zen-active [class*="patreon"]:hover {
+  opacity: 1 !important;
+}
+
+/* ============================================================
+   8. SLEEK TOAST NOTIFICATION
+   ============================================================ */
+#manhwa-ambient-toast {
+  position: fixed !important;
+  bottom: 28px !important;
+  right: 28px !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 18px !important;
+  border-radius: 12px !important;
+  background: rgba(13, 14, 18, 0.92) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(0, 210, 255, 0.35) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 210, 255, 0.2) !important;
+  color: #f3f4f6 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#manhwa-ambient-toast.show {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+.manhwa-toast-icon {
+  font-size: 16px;
+  line-height: 1;
+}

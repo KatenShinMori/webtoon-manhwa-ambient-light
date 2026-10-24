@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webtoon Ambient Light</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="logo-aura">
+          <img src="../icons/icon32.png" alt="Logo" class="logo-img">
+        </div>
+        <div class="title-meta">
+          <h1 class="extension-title">Ambient Light V2.0</h1>
+          <div class="domain-badge-wrapper">
+            <span class="status-dot" id="statusDot"></span>
+            <span class="domain-text" id="domainText">Detecting site...</span>
+          </div>
+        </div>
+      </div>
+      <label class="switch" title="Toggle Ambient Light for this domain (Alt+A)">
+        <input type="checkbox" id="masterToggle" checked>
+        <span class="slider-toggle"></span>
+      </label>
+    </header>
+
+    <!-- Main Content (disabled visual state when off) -->
+    <main class="controls-wrapper" id="controlsWrapper">
+
+      <!-- Visual Presets Bar -->
+      <section class="control-section">
+        <div class="section-label">
+          <span>One-Click Presets</span>
+        </div>
+        <div class="presets-row" role="group" aria-label="Visual Presets">
+          <button type="button" class="preset-btn" data-preset="cinema" title="Subtle, balanced halo glow with soft intensity">🎬 Cinema</button>
+          <button type="button" class="preset-btn" data-preset="vivid" title="High vibrance and punchy intensity for action panels">⚡ Vivid</button>
+          <button type="button" class="preset-btn" data-preset="oled" title="High contrast with zero gray haze on dark panels">🌌 OLED</button>
+          <button type="button" class="preset-btn" data-preset="full" title="Edge-to-edge monitor ambient filling the viewport">🖥️ Full</button>
+        </div>
+      </section>
+
+      <!-- Lighting Mode Selector -->
+      <section class="control-section">
+        <div class="section-label">
+          <span>Lighting Mode</span>
+        </div>
+        <div class="segmented-control" role="radiogroup">
+          <button type="button" class="segment-btn active" id="modeHaloBtn" data-mode="halo" title="Wraps soft glow around the comic strip">
+            <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" stroke-dasharray="2 2" opacity="0.6"/>
+              <rect x="8" y="5" width="8" height="14" rx="2" fill="currentColor" fill-opacity="0.25"/>
+            </svg>
+            <span>Halo Glow</span>
+          </button>
+          <button type="button" class="segment-btn" id="modeFullBleedBtn" data-mode="full-bleed" title="Fills the entire screen edge-to-edge">
+            <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="5" width="20" height="14" rx="2" stroke-opacity="0.5"/>
+              <rect x="8" y="5" width="8" height="14" fill="currentColor" fill-opacity="0.3"/>
+            </svg>
+            <span>Full-Bleed</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Sliders Group -->
+      <section class="control-section sliders-group">
+        <!-- Glow Spread (Halo mode only) -->
+        <div class="slider-row" id="spreadRow">
+          <div class="slider-header">
+            <span class="slider-name">Glow Spread</span>
+            <span class="slider-value" id="spreadVal">280px</span>
+          </div>
+          <input type="range" class="range-slider" id="spreadSlider" min="100" max="450" step="10" value="280">
+        </div>
+
+        <!-- Blur Smoothness -->
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name">Blur Smoothness</span>
+            <span class="slider-value" id="blurVal">90px</span>
+          </div>
+          <input type="range" class="range-slider" id="blurSlider" min="40" max="160" step="5" value="90">
+        </div>
+
+        <!-- Glow Intensity -->
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name">Glow Intensity</span>
+            <span class="slider-value" id="intensityVal">65%</span>
+          </div>
+          <input type="range" class="range-slider" id="intensitySlider" min="10" max="100" step="5" value="65">
+        </div>
+
+        <!-- Color Vibrance -->
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name">Color Vibrance</span>
+            <span class="slider-value" id="vibranceVal">180%</span>
+          </div>
+          <input type="range" class="range-slider" id="vibranceSlider" min="100" max="300" step="10" value="180">
+        </div>
+      </section>
+
+      <!-- Visual Enhancements & Toggles Group -->
+      <section class="control-section toggles-group">
+        <!-- Anti-Glare Speech Bubble Highlight Guard -->
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <span class="toggle-title">Suppress White Speech Glare</span>
+            <span class="toggle-desc">Anti-flashbang filter for edge speech bubbles</span>
+          </div>
+          <label class="switch mini">
+            <input type="checkbox" id="suppressGlareToggle" checked>
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <!-- Dual-Layer Depth Glow -->
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <span class="toggle-title">Dual-Layer Depth Glow</span>
+            <span class="toggle-desc">Near crisp halo + far atmospheric wash</span>
+          </div>
+          <label class="switch mini">
+            <input type="checkbox" id="dualLayerToggle" checked>
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <!-- Zen Cinema Mode -->
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <span class="toggle-title">Zen Mode (Dim Floating UI)</span>
+            <span class="toggle-desc">Dims sticky bars & floating buttons (Alt+Z)</span>
+          </div>
+          <label class="switch mini">
+            <input type="checkbox" id="zenModeToggle">
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <!-- Force Dark Background -->
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <span class="toggle-title">Force Dark Background</span>
+            <span class="toggle-desc">Converts light reader sites to #070709</span>
+          </div>
+          <label class="switch mini">
+            <input type="checkbox" id="forceDarkToggle" checked>
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <!-- Panel Elevation Shadow -->
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <span class="toggle-title">Panel Depth Shadow</span>
+            <span class="toggle-desc">Lateral shadow separating art from ambient glow</span>
+          </div>
+          <label class="switch mini">
+            <input type="checkbox" id="panelShadowToggle" checked>
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <!-- Smart Auto-Detect -->
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <span class="toggle-title">Auto-Detect Webtoon Pages</span>
+            <span class="toggle-desc">Auto-activates on vertical chapter layouts</span>
+          </div>
+          <label class="switch mini">
+            <input type="checkbox" id="autoDetectToggle" checked>
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer Actions & Shortcut Hints -->
+    <footer class="footer">
+      <button type="button" class="btn-reset" id="resetBtn" title="Reset all settings to default">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        <span>Reset Defaults</span>
+      </button>
+      <div class="shortcuts-tag" title="Keyboard Shortcuts: Alt+A toggles ambient glow, Alt+Z toggles Zen mode">
+        <kbd>Alt+A</kbd> Glow &bull; <kbd>Alt+Z</kbd> Zen
+      </div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

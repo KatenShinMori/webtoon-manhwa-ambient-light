@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solo Leveling: Chapter 180 - Manhwa Ambient Light V2.0 Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #0c0d12;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+
+    body.light-theme {
+      background-color: #f3f4f6;
+      color: #1e293b;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(15, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 100;
+    }
+
+    body.light-theme .top-nav {
+      background: rgba(255, 255, 255, 0.85);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .nav-title {
+      font-size: 16px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d2ff, #9d4edd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+
+    /* Nested Container Wrappers (Testing Bug 3 DOM Traversal) */
+    .site-main-wrapper {
+      width: 100%;
+      background-color: #1a1c24;
+      display: flex;
+      justify-content: center;
+    }
+
+    .site-inner-container {
+      width: 100%;
+      background-color: #232733;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Reader Main Column */
+    .reader-container {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 20px auto 60px auto;
+      position: relative;
+    }
+
+    .chapter-header {
+      width: 100%;
+      text-align: center;
+      padding: 24px 16px;
+      margin-bottom: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .chapter-header h1 {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .chapter-header p {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    /* Comic Images (Stacked with 0px margin) */
+    .reading-content {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .comic-panel {
+      display: block;
+      width: 100%;
+      max-width: 720px;
+      height: auto;
+      margin: 0;
+      padding: 0;
+      border: none;
+      vertical-align: bottom;
+    }
+
+    /* Floating UI Elements (For testing Zen Cinema Mode auto-dimming) */
+    .floating-discord {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      background: #5865f2;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 24px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(88, 101, 242, 0.4);
+      z-index: 150;
+      cursor: pointer;
+    }
+
+    .floating-report {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      background: rgba(220, 38, 38, 0.85);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 150;
+      cursor: pointer;
+    }
+
+    /* Floating test helper widget */
+    .test-helper {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(18, 20, 28, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      max-width: 320px;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    body.light-theme .test-helper {
+      background: rgba(255, 255, 255, 0.95);
+      color: #0f172a;
+      border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .helper-title {
+      font-weight: 700;
+      color: #00d2ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .helper-btn {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 6px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .helper-btn:hover {
+      background: #1d4ed8;
+    }
+  </style>
+
+  <!-- Content stylesheet for extension styles -->
+  <link rel="stylesheet" href="../content.css">
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="top-nav">
+    <div class="nav-title">Webtoon Ambient Light V2.0 Test Reader</div>
+    <div class="nav-controls">
+      <button class="btn" id="toggleThemeBtn">Toggle Background (Dark/White)</button>
+      <button class="btn" id="toggleZenBtn">Toggle Zen Mode (Alt+Z)</button>
+    </div>
+  </header>
+
+  <!-- Distracting Floating UI Elements (For testing Zen Mode) -->
+  <div class="floating-discord" title="Test Zen Mode: this should auto-dim to 0.08 opacity">💬 Join Discord (Zen Test)</div>
+  <div class="floating-report" title="Test Zen Mode: this should auto-dim to 0.08 opacity">⚠️ Report Issue (Zen Test)</div>
+
+  <!-- Nested Site Wrappers (Testing Bug 3 DOM Traversal) -->
+  <div class="site-main-wrapper">
+    <div class="site-inner-container">
+      <main class="reader-container">
+        <div class="chapter-header">
+          <h1>Return of the Cosmic Shadow Monarch</h1>
+          <p>Chapter 180: The Dimensional Clash &bull; Asura / Webtoon Layout</p>
+        </div>
+
+        <!-- Chapter Comic Panels (0px margin stacked images) -->
+        <div class="reading-content" id="readingContent">
+          <img src="panels/panel-1-neon-cyan.png" alt="Panel 1 - Neon Cyan Magic" class="comic-panel" loading="eager">
+          <img src="panels/panel-2-golden-blade.png" alt="Panel 2 - Golden Blade Slash" class="comic-panel" loading="eager">
+          <img src="panels/panel-3-cosmic-purple.png" alt="Panel 3 - Cosmic Purple Dungeon" class="comic-panel" loading="eager">
+          <img src="panels/panel-4-crimson-dragon.png" alt="Panel 4 - Crimson Dragon Breath" class="comic-panel" loading="eager">
+          <img src="panels/panel-5-emerald-forest.png" alt="Panel 5 - Emerald Forest Spirit" class="comic-panel" loading="eager">
+          <img src="panels/panel-6-speech-bubble.png" alt="Panel 6 - Edge Speech Bubble (Glare Guard Test)" class="comic-panel" loading="eager">
+        </div>
+
+        <div class="chapter-header" style="margin-top: 30px;">
+          <p>&mdash; End of Chapter 180 &mdash;</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Floating Test Helper -->
+  <aside class="test-helper" style="width: 260px;">
+    <div class="helper-title">
+      <span>💡 V2.1 Live Feature Tester</span>
+    </div>
+    <p style="font-size: 11px; color: #94a3b8;">Shortcuts: <kbd>Alt+A</kbd> Toggle Glow &bull; <kbd>Alt+Z</kbd> Zen Mode</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+      <button class="helper-btn" id="presetCinemaBtn" style="background: #374151;">🎬 Cinema</button>
+      <button class="helper-btn" id="presetVividBtn" style="background: #7c3aed;">⚡ Vivid</button>
+      <button class="helper-btn" id="presetOledBtn" style="background: #0f172a; border: 1px solid #334155;">🌌 OLED</button>
+      <button class="helper-btn" id="presetFullBtn" style="background: #00d2ff; color: #000;">🖥️ Full</button>
+    </div>
+
+    <!-- Sliders for Bug 1 Live Verification -->
+    <div style="display: flex; flex-direction: column; gap: 6px; margin: 8px 0; font-size: 11px;">
+      <div style="display: flex; justify-content: space-between;">
+        <span>Spread: <b id="demoSpreadVal">280px</b></span>
+      </div>
+      <input type="range" id="demoSpreadSlider" min="100" max="450" value="280" style="width: 100%;">
+
+      <div style="display: flex; justify-content: space-between;">
+        <span>Blur: <b id="demoBlurVal">90px</b></span>
+      </div>
+      <input type="range" id="demoBlurSlider" min="40" max="160" value="90" style="width: 100%;">
+
+      <div style="display: flex; justify-content: space-between;">
+        <span>Intensity: <b id="demoIntensityVal">65%</b></span>
+      </div>
+      <input type="range" id="demoIntensitySlider" min="10" max="100" value="65" style="width: 100%;">
+
+      <div style="display: flex; justify-content: space-between;">
+        <span>Vibrance: <b id="demoVibranceVal">180%</b></span>
+      </div>
+      <input type="range" id="demoVibranceSlider" min="100" max="300" value="180" style="width: 100%;">
+
+      <div style="display: flex; gap: 8px; margin-top: 4px;">
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" id="demoGlareToggle" checked> Glare Guard
+        </label>
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" id="demoDualToggle" checked> Dual-Layer
+        </label>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 6px;">
+      <button class="helper-btn" id="testZenModeBtn" style="flex: 1; background: #059669;">Zen Mode</button>
+      <button class="helper-btn" id="addMorePanelsBtn" style="flex: 1; background: #2563eb;">+ Add Panels</button>
+    </div>
+  </aside>
+
+  <script>
+    // Test page controls
+    const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+    const toggleZenBtn = document.getElementById('toggleZenBtn');
+    const testZenModeBtn = document.getElementById('testZenModeBtn');
+    const addMorePanelsBtn = document.getElementById('addMorePanelsBtn');
+    const readingContent = document.getElementById('readingContent');
+
+    toggleThemeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light-theme');
+    });
+
+    const PRESETS = {
+      cinema: { mode: 'halo', spread: 220, blur: 85, intensity: 55, vibrance: 140, suppressGlare: true, dualLayer: true, forceDark: true },
+      vivid: { mode: 'halo', spread: 320, blur: 90, intensity: 75, vibrance: 240, suppressGlare: true, dualLayer: true, forceDark: true },
+      oled: { mode: 'halo', spread: 260, blur: 70, intensity: 65, vibrance: 190, suppressGlare: true, dualLayer: true, forceDark: true },
+      full: { mode: 'full-bleed', spread: 400, blur: 110, intensity: 70, vibrance: 200, suppressGlare: true, dualLayer: true, forceDark: true }
+    };
+
+    document.getElementById('presetCinemaBtn').addEventListener('click', () => {
+      window.postMessage({ type: 'MANHWA_APPLY_PRESET', preset: PRESETS.cinema }, '*');
+    });
+
+    document.getElementById('presetVividBtn').addEventListener('click', () => {
+      window.postMessage({ type: 'MANHWA_APPLY_PRESET', preset: PRESETS.vivid }, '*');
+    });
+
+    document.getElementById('presetOledBtn').addEventListener('click', () => {
+      window.postMessage({ type: 'MANHWA_APPLY_PRESET', preset: PRESETS.oled }, '*');
+    });
+
+    document.getElementById('presetFullBtn').addEventListener('click', () => {
+      window.postMessage({ type: 'MANHWA_APPLY_PRESET', preset: PRESETS.full }, '*');
+    });
+
+    function toggleZen() {
+      window.postMessage({ type: 'MANHWA_TOGGLE_ZEN' }, '*');
+    }
+
+    toggleZenBtn.addEventListener('click', toggleZen);
+    testZenModeBtn.addEventListener('click', toggleZen);
+
+    // Live Slider Sync for Test Environment
+    const demoSpreadSlider = document.getElementById('demoSpreadSlider');
+    const demoSpreadVal = document.getElementById('demoSpreadVal');
+    const demoBlurSlider = document.getElementById('demoBlurSlider');
+    const demoBlurVal = document.getElementById('demoBlurVal');
+    const demoIntensitySlider = document.getElementById('demoIntensitySlider');
+    const demoIntensityVal = document.getElementById('demoIntensityVal');
+    const demoVibranceSlider = document.getElementById('demoVibranceSlider');
+    const demoVibranceVal = document.getElementById('demoVibranceVal');
+    const demoGlareToggle = document.getElementById('demoGlareToggle');
+    const demoDualToggle = document.getElementById('demoDualToggle');
+
+    function syncDemoSliders() {
+      const spread = parseInt(demoSpreadSlider.value, 10);
+      const blur = parseInt(demoBlurSlider.value, 10);
+      const intensity = parseInt(demoIntensitySlider.value, 10);
+      const vibrance = parseInt(demoVibranceSlider.value, 10);
+      const suppressGlare = demoGlareToggle.checked;
+      const dualLayer = demoDualToggle.checked;
+
+      demoSpreadVal.textContent = `${spread}px`;
+      demoBlurVal.textContent = `${blur}px`;
+      demoIntensityVal.textContent = `${intensity}%`;
+      demoVibranceVal.textContent = `${vibrance}%`;
+
+      window.postMessage({
+        type: 'MANHWA_UPDATE_SETTINGS',
+        settings: { spread, blur, intensity, vibrance, suppressGlare, dualLayer }
+      }, '*');
+    }
+
+    [demoSpreadSlider, demoBlurSlider, demoIntensitySlider, demoVibranceSlider].forEach(slider => {
+      slider.addEventListener('input', syncDemoSliders);
+    });
+    demoGlareToggle.addEventListener('change', syncDemoSliders);
+    demoDualToggle.addEventListener('change', syncDemoSliders);
+
+    const extraPanels = [
+      'panels/panel-1-neon-cyan.png',
+      'panels/panel-6-speech-bubble.png',
+      'panels/panel-3-cosmic-purple.png'
+    ];
+
+    function appendPanels() {
+      extraPanels.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.className = 'comic-panel';
+        img.loading = 'lazy';
+        readingContent.appendChild(img);
+      });
+    }
+
+    addMorePanelsBtn.addEventListener('click', appendPanels);
+  </script>
+
+  <!-- In standalone mode, load content.js directly -->
+  <script src="../content.js"></script>
+</body>
+</html>
