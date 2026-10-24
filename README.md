@@ -2,12 +2,9 @@ Halo Preview
 
 <img width="1280" height="654" alt="halo glow" src="https://github.com/user-attachments/assets/bca7e4af-3fd3-452d-82dc-77f7c1e313d0" />
 
-
 Full Screen Preview
 
 <img width="1280" height="650" alt="full screen glow" src="https://github.com/user-attachments/assets/1bf96f34-a5dd-4f29-9f50-aadcbe2f4a40" />
-
-
 
 <div align="center">
 
@@ -25,8 +22,18 @@ Inspired by **"[Corsair LS100](https://www.corsair.com/us/en)"** and **"[Ambient
 
 ---
 
-## ✨ Key Features (V2.2)
+## ✨ Key Features (V2.3)
 
+- 🎯 **3-Tier Intelligent Activation Pipeline:**
+  - **Tier 1 — 200+ Recognized Platform Whitelist:** Built-in recognition for over 200+ official and community manhwa, webtoon, and manga platforms (Webtoons, Asura Scans, MangaDex, Naver Webtoon, Kakao, Tapas, Manta, Bato.to, Lezhin, Komiku, MangaPlus, Piccoma, etc.). Ambient light activates automatically on recognized domains without delay.
+  - **Tier 2 — Smart Auto-Detect Reader Heuristic (Unlisted Sites):** Stays completely silent and OFF on general websites (Wikipedia, blogs, news). Watches unlisted domains using debounced `MutationObserver` listeners and multi-stage retry polling (300ms, 1.5s, 4s, 8s). When $\ge 3$ consecutive vertical reading panels are detected ($w \ge 420\text{px}, h \ge 450\text{px}$, column drift $<15\text{px}$, flush gap $<40\text{px}$), the engine automatically fires up with an `"Auto-detected Manhwa Reader ✨"` notification.
+  - **Tier 3 — Bulletproof Domain Blocklist & Single Choke-Point Security:** Zero light leakage on video streaming (YouTube, Twitch, Netflix, Vimeo, Dailymotion), AI chat tools (ChatGPT, Claude, Perplexity, DeepSeek, Grok, Midjourney, Hugging Face, Copilot), social networks (Reddit, Twitter/X, Instagram, Facebook, TikTok, Pinterest, LinkedIn, Threads, Tumblr, Bluesky, Snapchat), and messaging apps (Discord, Telegram, WhatsApp). Single choke-point verification inside engine activation guarantees sliders, presets, and background events cannot bypass domain blocks.
+- 🔒 **Intentional Per-Site Manual Overrides:**
+  - Moving sliders, clicking presets, switching lighting modes, and clicking "Reset" will **never** mark a domain with an accidental permanent override.
+  - Only deliberate on/off actions—clicking the Master On/Off switch in the popup or pressing `Alt+A`—create an intentional override (`overrideSource: 'toggle'`).
+  - Stale or false-positive overrides on blocked sites are automatically purged on startup.
+- 🧹 **Deep Teardown & SPA Navigation Guard:**
+  - Full automatic teardown on single-page-app navigation (e.g. YouTube video switches). Removes all stage layers, backdrop bases, SVG filters, DOM clones, CSS custom properties, and Zen dimming classes with zero leftover residue.
 - 🛡️ **Luminance-Subtraction Speech Bubble Anti-Glare:**
   - Upgraded inline SVG filter (`#manhwa-highlight-guard`) injected off-screen without `display: none` (ensuring Chromium's compositor never ignores it).
   - Uses `feColorMatrix` desaturation, an isolated `feComponentTransfer` luminance curve targeting highlights (>65% brightness), and an arithmetic `feComposite` subtraction (`1.15 * SourceGraphic - 0.80 * whiteMask`).
@@ -48,14 +55,10 @@ Inspired by **"[Corsair LS100](https://www.corsair.com/us/en)"** and **"[Ambient
   - **Vivid:** 240% saturation boost for vibrant action manhwa.
   - **OLED Dark:** Enhanced contrast so dark panels emit zero gray haze.
   - **Full Monitor:** Stretches edge-to-edge horizontally across the entire screen.
-- 🧠 **Smart Auto-Detect with False-Positive Prevention & Blocklist:**
-  - Built-in domain blocklist (`youtube.com`, `twitch.tv`, `netflix.com`, `reddit.com`, `x.com`, etc.) with stale override cache cleanup.
-  > It **SHOULD** block most of the sites that is non manwha related but there is sometimes where you have to manually close it for that site but it stays off when you turn off for that specific site!
-  - Strict webtoon strip geometry: requires $\ge 3$ consecutive non-link images ($w \ge 420\text{px}, h \ge 450\text{px}, w/h \le 1.4$) aligned in a single vertical column ($<15\text{px}$ drift) and stacked flush ($<40\text{px}$ gap).
 - 🧘 **Zen Cinema Mode (Auto-Dim Distracting UI):**
   - Dims sticky navigation bars, floating Discord widgets, and "Report" buttons to 0.08 opacity, restoring them on hover.
 - ⌨️ **Keyboard Shortcuts & Instant Toasts:**
-  - `Alt+A`: Toggle Ambient Light on/off.
+  - `Alt+A`: Toggle Ambient Light on/off (deliberate per-site override).
   - `Alt+Z`: Toggle Zen Cinema Mode on/off.
   - Displays a sleek 1.5-second floating toast notification in the corner.
 - ⚡ **Viewport Virtualization & DOM Pooling:**
@@ -66,13 +69,14 @@ Inspired by **"[Corsair LS100](https://www.corsair.com/us/en)"** and **"[Ambient
 ## 📁 Repository Structure
 
 ```
-├── manifest.json            # Manifest V3 configuration
-├── content.js               # Ambient lighting engine & scroll sync loop
+├── manifest.json            # Manifest V3 configuration (v2.3.0)
+├── content.js               # Ambient lighting engine, whitelist, heuristic & sync loop
 ├── content.css              # GPU-accelerated blur filters, stage & modes
+├── whitelist.md             # Curated directory of 200+ recognized manhwa/manga domains
 ├── popup/
 │   ├── popup.html           # Sleek dark-mode extension popup
 │   ├── popup.css            # Glassmorphic controls, sliders & switches
-│   └── popup.js             # Live settings sync & per-domain storage
+│   └── popup.js             # Live settings sync & clean storage interface
 ├── icons/
 │   ├── icon16.png
 │   ├── icon32.png
@@ -119,7 +123,44 @@ A full interactive test environment is included in `test/demo.html`:
 
 ---
 
-## 🛠️ Architecture & How It Works (V2.2 Refined)
+## 🛠️ Architecture & How It Works (V2.3 Refined)
+
+### 1. Intelligent 3-Tier Activation Flow
+
+```
+                           [ PAGE NAVIGATION / LOAD ]
+                                       │
+                                       ▼
+                   ┌───────────────────────────────────────┐
+                   │  Is domain on the Blocklist?          │
+                   │  (YouTube, Twitch, Netflix, AI chats) │
+                   └───────────────────┬───────────────────┘
+                                       │
+                        YES ───────────┴─────────── NO
+                         │                           │
+                         ▼                           ▼
+        ┌────────────────────────────────┐  ┌──────────────────────────────────┐
+        │ Has explicit toggle override?  │  │ Is domain on 200+ Whitelist?     │
+        │ (overrideSource === 'toggle')  │  │ (Webtoons, Asura, MangaDex, etc.)│
+        └───────────────┬────────────────┘  └────────────────┬─────────────────┘
+                        │                                    │
+           YES ─────────┴───────── NO           YES ─────────┴───────── NO
+            │                       │            │                       │
+            ▼                       ▼            ▼                       ▼
+    [ START ENGINE ]          [ STAY OFF ]  [ START ENGINE ]  ┌─────────────────────┐
+                              [ FULL TEARDOWN ]               │ Run Auto-Detect     │
+                                                              │ Heuristic (3+ flush │
+                                                              │ stacked tall panels)│
+                                                              └──────────┬──────────┘
+                                                                         │
+                                                            MATCH ───────┴─────── NO MATCH
+                                                              │                      │
+                                                              ▼                      ▼
+                                                      [ START ENGINE ]         [ STAY OFF ]
+                                                      Show Toast "✨"
+```
+
+### 2. Rendering & DOM Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -153,29 +194,32 @@ A full interactive test environment is included in `test/demo.html`:
 └────────────────────────────────────────────────────────┘
 ```
 
-1. **Luminance-Subtraction Glare Guard (Chromium Off-Screen SVG):**
+1. **Single Choke-Point Verification:**
+   - Both `activateAmbientEngine()` and `checkAutoDetectHeuristic()` route directly through `isEngineAllowed()`.
+   - Incoming messages from the popup (sliders, presets, Reset) pass through `withoutProtectedKeys()`, stripping any attempts to forge an `enabled` state.
+2. **Luminance-Subtraction Glare Guard (Chromium Off-Screen SVG):**
    - Injected with `width="0" height="0" style="position: fixed; top: -9999px; left: -9999px; pointer-events: none;"` (no `display: none`, keeping it in Chromium's compositor tree).
    - Generates a bright highlight luminance mask (`tableValues="0 0 0 0 0 0.05 0.35 0.75 1.0"`) and subtracts it via `<feComposite operator="arithmetic" k2="1.15" k3="-0.80">`, knocking down speech bubble white glare by ~70% while boosting rich color artwork.
-2. **Horizontal Downsample & Pre-Stretch Blur:**
+3. **Horizontal Downsample & Pre-Stretch Blur:**
    - Instead of rendering clones at stretched 800px+ widths, clones inside `.manhwa-clone-wrapper` are forced to `64px` width with `filter: blur(18px) !important`.
    - The clone is stretched horizontally using `transform: scaleX(calc(targetWidth / 64))` with `transform-origin: left center`. This dissolves speech bubble polygon outlines and text smudges into smooth gradients even when blur is set down to `40px`.
-3. **Strict Vertical Lock (Zero Y-Drift):**
+4. **Strict Vertical Lock (Zero Y-Drift):**
    - Each mirrored ambient image is 100% locked to the exact vertical `top` and `height` of the original `<img>`'s `getBoundingClientRect()`.
    - Uses `object-fit: fill !important` on the clone image. Changing "Glow Spread" or toggling "Full-Bleed" stretches the slice **only along the horizontal X-axis**.
-4. **Seamless Vertical Seam Blending via Parent Canvas Blur:**
+5. **Seamless Vertical Seam Blending via Parent Canvas Blur:**
    - Stacked clones have a `-2px` subpixel overlap (`top: Math.floor(rect.top) - 1`, `height: Math.ceil(rect.height) + 2`).
    - The main `filter: blur(...)` is applied to the parent `.manhwa-ambient-canvas` container. The GPU blurs the stacked column as a continuous texture, eliminating horizontal seams.
-5. **Full DOM Ancestor Traversal:**
+6. **Full DOM Ancestor Traversal:**
    - When comic panels are detected, `markAncestorContainers(img)` traverses all the way up the DOM tree to `document.body` and marks all ancestor wrapper elements with `data-manhwa-ambient-container="true"`, clearing any opaque background colors with `background-color: transparent !important`.
 
 ---
 
-## ⚙️ Configuration & Settings (V2.2)
+## ⚙️ Configuration & Settings (V2.3)
 
 | Setting | Range / Options | Default | Description |
 | :--- | :--- | :--- | :--- |
 | **Active Presets** | `Cinema`, `Vivid`, `OLED`, `Full` | Custom | One-click visual style presets. |
-| **Site Toggle** | On / Off | `On` | Enable or disable ambient light per-domain. |
+| **Site Toggle** | On / Off | `Auto` | Enable or disable ambient light per-domain. Automatically activates on whitelisted platforms and heuristic-detected readers. |
 | **Lighting Mode** | `Halo Glow` / `Full-Bleed` | `Halo Glow` | Soft halo aura vs monitor edge-to-edge ambient. |
 | **Glow Spread** | `100px` – `450px` | `280px` | How far outward halo light extends into the margins. |
 | **Blur Smoothness** | `40px` – `160px` | `90px` | Gaussian blur radius applied to ambient clones. |
@@ -183,7 +227,7 @@ A full interactive test environment is included in `test/demo.html`:
 | **Color Vibrance** | `100%` – `300%` | `180%` | Saturation boost to make colors vivid and punchy. |
 | **Suppress Glare** | On / Off | `On` | Luminance subtraction filter crushing >65% white speech bubbles by ~70%. |
 | **Dual-Layer Depth** | On / Off | `On` | Near halo (core) + far atmospheric wash. |
-| **Auto-Detect** | On / Off | `On` | Auto-enables on 3+ stacked comic image columns. |
+| **Auto-Detect** | On / Off | `On` | Watches unlisted pages for 3+ stacked vertical comic panels. |
 | **Zen Cinema Mode** | On / Off | `Off` | Auto-dims sticky headers and floating widgets to 0.08 opacity. |
 | **Force Dark BG** | Checked / Unchecked | `Checked` | Forces stubborn white reader containers to `#070709`. |
 | **Panel Shadow** | Checked / Unchecked | `Checked` | Lateral drop shadow separating comic panels from glow. |
@@ -194,8 +238,8 @@ A full interactive test environment is included in `test/demo.html`:
 
 | Shortcut | Action | Feedback |
 | :--- | :--- | :--- |
-| `Alt + A` | Toggle Ambient Light On / Off | 1.5s Floating Toast Notification |
-| `Alt + Z` | Toggle Zen Cinema Mode On / Off | 1.5s Floating Toast Notification |
+| `Alt + A` | Toggle Ambient Light On / Off (Manual Override) | 1.5s Floating Toast Notification |
+| `Alt + Z` | Toggle Zen Cinema Mode On / Off (When Active) | 1.5s Floating Toast Notification |
 
 ---
 

@@ -1,6 +1,6 @@
 /**
  * Webtoon & Manhwa Ambient Light
- * Popup Controller - V2.0 Enhanced Engine
+ * Popup Controller - V2.3 Enhanced Engine
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Default state
   const DEFAULTS = {
-    enabled: true,
+    enabled: false, // off until auto-detect finds a manhwa reader or you toggle it on
     mode: 'halo',
     spread: 280,
     blur: 90,
@@ -196,16 +196,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       chrome.storage.local.get(['globalSettings', 'domainOverrides'], (res) => {
         const global = res.globalSettings || {};
         const domainConfig = (res.domainOverrides && res.domainOverrides[currentDomain]) || {};
-        const isBlocked = [
-          'youtube.com', 'google.com', 'twitch.tv', 'reddit.com',
-          'x.com', 'twitter.com', 'github.com', 'netflix.com',
-          'facebook.com', 'instagram.com', 'bilibili.com', 'tiktok.com'
-        ].some(d => currentDomain.toLowerCase() === d || currentDomain.toLowerCase().endsWith('.' + d));
 
         currentSettings = { ...DEFAULTS, ...global, ...domainConfig };
-        if (isBlocked && !domainConfig.isManualOverride) {
-          currentSettings.enabled = false;
-        }
+        // We only get here when the page's content script could not be reached,
+        // which means the light cannot be running on this page -> show it as off.
+        // (The blocklist itself lives in ONE place: content.js.)
+        currentSettings.enabled = false;
         updateUI(currentSettings);
       });
     } else {
@@ -303,7 +299,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 4. Live update dispatcher with cancellation queue
   let notifyRafId = null;
-  let saveDiskTimer = null;
 
   function notifyContentScript(saveToDisk = false) {
     if (activeTabId && typeof chrome !== 'undefined' && chrome.tabs) {
@@ -317,22 +312,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    if (saveToDisk && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      clearTimeout(saveDiskTimer);
-      saveDiskTimer = setTimeout(() => {
-        chrome.storage.local.get(['domainOverrides'], (res) => {
-          const overrides = res.domainOverrides || {};
-          overrides[currentDomain] = { ...currentSettings };
-          chrome.storage.local.set({ domainOverrides: overrides });
-        });
-      }, 120);
-    }
+    // NOTE: Saving is done ONLY by content.js (saveSettingsForDomain), which applies
+    // the blocked-site rules. The popup used to write storage directly here, which
+    // bypassed those rules and could save `isManualOverride: true` on every slider move.
+    // (`saveToDisk` is kept only so existing calls don't need changing.)
   }
 
   // 5. Event Listeners
   masterToggle.addEventListener('change', async () => {
+    // The on/off toggle is the ONLY popup control that counts as a deliberate
+    // per-site choice. content.js records that when it receives TOGGLE_ENABLED.
     currentSettings.enabled = masterToggle.checked;
-    currentSettings.isManualOverride = true;
     setControlsActive(currentSettings.enabled);
 
     if (activeTabId) {

@@ -1,12 +1,12 @@
 /**
  * Webtoon & Manhwa Ambient Light
- * Content Script - V2.0 Enhanced Engine
+ * Content Script - V2.3 Enhanced Engine
  *
  * Features:
  * - Anti-Flashbang Highlight Guard (SVG feComponentTransfer filter curve)
  * - Dual-Layer Depth Glow (Inner Core Halo + Outer Atmosphere Wash)
  * - Strict Vertical Synchronization (1:1 Y locking, object-fit: fill)
- * - Smart Auto-Detect Manhwa Layout Heuristic
+ * - 3-Tier Activation: 200+ Recognized Whitelist + Smart Auto-Detect + Blocklist
  * - Zen Cinema Mode (Auto-Dim Distracting Floating UI)
  * - Keyboard Shortcuts (Alt+A for Ambient Light, Alt+Z for Zen Mode)
  * - DOM Pooling & Viewport Virtualization
@@ -23,7 +23,7 @@
    * 1. DEFAULT CONFIGURATION & V2 STATE
    * ============================================================ */
   const DEFAULT_SETTINGS = {
-    enabled: true,
+    enabled: false, // OFF until auto-detect recognizes a manhwa reader, or you toggle it ON (popup / Alt+A)
     mode: 'halo', // 'halo' | 'full-bleed'
     spread: 280, // px outward spread in Halo mode (100 - 450)
     blur: 90, // px blur smoothness (40 - 160)
@@ -68,94 +68,508 @@
   /* ============================================================
    * 2. INITIALIZATION, STORAGE & DOMAIN BLOCKLIST
    * ============================================================ */
+
+  // ------------------------------------------------------------
+  // DEBUG LOGGING
+  // Shows lines starting with "[Manhwa Ambient]" in the page console (F12).
+  // Change `false` to `true` on the next line to enable verbose logging.
+  // ------------------------------------------------------------
+  const MANHWA_DEBUG = false;
+  function debugLog(...args) {
+    if (MANHWA_DEBUG) console.log('[Manhwa Ambient]', ...args);
+  }
+
+  // ------------------------------------------------------------
+  // BLOCKED SITES — THIS IS THE ONE AND ONLY LIST
+  // The ambient light will NEVER start on these sites (or any of their
+  // subdomains) unless you deliberately flip the on/off toggle ON for that
+  // site yourself (popup toggle or Alt+A).
+  //
+  // HOW TO ADD A SITE: add a new line with the main domain in quotes and a
+  // comma at the end, e.g.   'example.com',
+  // Don't include "www." or "https://". 'example.com' automatically covers
+  // www.example.com, m.example.com and every other subdomain.
+  // (So 'google.com' already covers gemini.google.com, mail.google.com, etc.)
+  // ------------------------------------------------------------
   const AUTO_DETECT_DOMAIN_BLOCKLIST = [
+    // Video & streaming
     'youtube.com',
-    'google.com',
     'twitch.tv',
+    'netflix.com',
+    'bilibili.com',
+    'vimeo.com',
+    'dailymotion.com',
+
+    // Search & big platforms
+    'google.com',
+    'github.com',
+
+    // Social media
     'reddit.com',
     'x.com',
     'twitter.com',
-    'github.com',
-    'netflix.com',
     'facebook.com',
     'instagram.com',
-    'bilibili.com',
-    'tiktok.com'
+    'tiktok.com',
+    'pinterest.com',
+    'linkedin.com',
+    'threads.net',
+    'tumblr.com',
+    'bsky.app',
+    'snapchat.com',
+
+    // Chat & messaging
+    'discord.com',
+    'web.telegram.org',
+    'web.whatsapp.com',
+
+    // AI tools
+    'chatgpt.com',
+    'chat.openai.com',
+    'openai.com',
+    'claude.ai',
+    'anthropic.com',
+    'perplexity.ai',
+    'grok.com',
+    'deepseek.com',
+    'poe.com',
+    'character.ai',
+    'midjourney.com',
+    'huggingface.co',
+    'copilot.microsoft.com'
   ];
 
-  function isBlockedDomain(hostname = currentDomain) {
+  // ------------------------------------------------------------
+  // RECOGNIZED MANHWA / WEBTOON / MANGA PLATFORMS (WHITELIST)
+  // Sites on this list are automatically recognized as manhwa/webtoon/manga
+  // readers, so ambient light starts automatically on them (unless you
+  // manually toggled the site OFF).
+  //
+  // Sites OUTSIDE this recognized list (and not in the blocklist) will
+  // still use the Smart Auto-Detect heuristic (checking for 3+ stacked
+  // manhwa images in a column) to automatically detect readers.
+  //
+  // HOW TO ADD A SITE: add a new line with the domain in quotes and a
+  // comma at the end, e.g.   'example.com',
+  // Subdomains are automatically covered (e.g. 'webtoons.com' covers
+  // 'www.webtoons.com' and 'm.webtoons.com').
+  // ------------------------------------------------------------
+  const RECOGNIZED_MANHWA_WHITELIST = [
+    // Official webtoon / manhwa platforms
+    'webtoons.com',
+    'manta.net',
+    'tappytoon.com',
+    'lezhinus.com',
+    'lezhin.com',
+    'tapas.io',
+    'pocketcomics.com',
+    'toomics.com',
+    'comikey.com',
+    'inkr.com',
+    'mangatoon.mobi',
+    'webcomicsapp.com',
+    'webnovel.com',
+    'lalatoon.com',
+    'coolmic.me',
+    'globalcomix.com',
+
+    // Korean original platforms
+    'comic.naver.com',
+    'series.naver.com',
+    'page.kakao.com',
+    'webtoon.kakao.com',
+    'ridibooks.com',
+    'bomtoon.com',
+    'toptoon.com',
+
+    // Chinese / Asian comic platforms
+    'kuaikanmanhua.com',
+    'ac.qq.com',
+    'dongmanmanhua.cn',
+    'manhuaren.com',
+    'piccoma.com',
+
+    // Multilingual comic readers / aggregators
+    'mangadex.org',
+    'mangapark.io',
+    'mangafire.to',
+    'comick.dev',
+    'comick.art',
+    'comix.to',
+    'bato.to',
+    'mangabuddy.com',
+    'mangakakalot.com',
+    'manganato.com',
+    'mangapill.com',
+    'mangasee123.com',
+    'weebcentral.com',
+    'mangaowl.io',
+
+    // Manhwa / manhua readers and scanlation sites
+    'asuracomic.net',
+    'asurascans.com',
+    'aquareader.net',
+    'toonily.com',
+    'demonicscans.org',
+    'manhuaplus.org',
+    'manhuaus.com',
+    'manhuaga.com',
+    'manhuanext.com',
+    'manhwaclan.com',
+    'manhwa-freak.org',
+    'manhwatop.com',
+    'mangaread.org',
+    'mangabat.com',
+    'mangabats.com',
+    'manganelo.com',
+    'flamecomics.com',
+    'thunderscans.com',
+    'drakescans.com',
+    'nightscans.net',
+    // Official manga / comic platforms
+    'mangaplus.shueisha.co.jp',
+    'viz.com',
+    'kmanga.kodansha.com',
+    'kodansha.us',
+    'yenpress.com',
+    'sevenseasentertainment.com',
+    'izepress.com',
+    'global.bookwalker.jp',
+    'bookwalker.jp',
+    'azuki.co',
+    'manga-up.com',
+    'alpha-manga.com',
+    'mangaplaza.com',
+    'mangaplanet.com',
+    'renta.com',
+    'ebookrenta.com',
+    'square-enix.com',
+    'darkhorse.com',
+    'hoopladigital.com',
+
+    // Japanese manga platforms
+    'manga.line.me',
+    'comic-walker.com',
+    'kadocomi.jp',
+    'comic-days.com',
+    'pocket.shonenmagazine.com',
+    'shonenjumpplus.com',
+    'tonarinoyj.jp',
+    'sunday-webry.jp',
+    'urasunday.com',
+    'manga-one.com',
+    'ganma.jp',
+    'kuragebunch.com',
+    'comic-zenon.com',
+    'comic-fuz.com',
+    'ganganonline.com',
+    'magazinepocket.com',
+    'yanmaga.jp',
+    'comic.pixiv.net',
+    'pixiv.net',
+    'cmoa.jp',
+    'ebookjapan.yahoo.co.jp',
+    'booklive.jp',
+    'mechacomic.jp',
+    'dbook.docomo.ne.jp',
+    'comic.k-manga.jp',
+
+    // Korean comic / webtoon platforms
+    'mrblue.com',
+    'peanutoon.com',
+    'foxtoon.com',
+    'bookcube.com',
+    'comico.kr',
+    'munpia.com',
+    'joara.com',
+    'ktoon.com',
+
+    // Other official comic platforms
+    'mangatoon.com',
+    'mangadraft.com',
+    // Manga readers and aggregators
+    'mangareader.to',
+    'mangareader.cc',
+    'manga4life.com',
+    'mangahere.cc',
+    'mangago.me',
+    'mangakatana.com',
+    'mangafreak.net',
+    'mangakomi.io',
+    'mangapuma.com',
+    'mangahub.io',
+    'mangapark.net',
+    'mangairo.com',
+    'mangasee.me',
+    'mangazone.to',
+    'mangaonlineteam.com',
+    'mangaforfree.com',
+    'mangatoto.com',
+    'mangaflix.com',
+    'mangakakalot.to',
+    'readm.org',
+    'mangaoi.net',
+    'mangafast.net',
+    'mangareaderx.com',
+    'mangahasu.se',
+    'mangabook.org',
+    'mangafox.me',
+    'mangapanda.in',
+    'mangapanda.com',
+    'mangaplus.me',
+    'mangastream.to',
+    'manganelo.tv',
+    'manganato.to',
+    'mangabat.vn',
+    'mangabats.net',
+    'mangaread.com',
+    'mangago.to',
+    'mangatx.com',
+    'mangaclash.com',
+    'zinmanga.com',
+    'mgeko.cc',
+    'kunmanga.com',
+    'harimanga.com',
+    '1stkissmanga.io',
+    'xbato.com',
+    'bato.si',
+    'battwo.com',
+    'comick.io',
+    'mangadex.network',
+    // Manhwa / webtoon reader candidates
+    'manhwax.com',
+    'manhwaweb.com',
+    'manhwatop.org',
+    'manhwaland.com',
+    'manhwacomic.com',
+    'manhwaread.com',
+    'manhwaread.org',
+    'manhwafull.com',
+    'manhwahub.net',
+    'manhwafreak.com',
+    'manhwa18.net',
+    'manhwaclan.org',
+    'manhwaindo.id',
+    'manhuafast.com',
+    'manhuascan.com',
+    'manhuascan.io',
+    'topmanhua.com',
+    'manhuaus.net',
+    'manhuazone.com',
+    'manhuagui.com',
+    'manhuazhan.com',
+    'manhuadb.com',
+    'manhua.fzdm.com',
+    'dm5.com',
+    'baozimh.org',
+    'colamanga.com',
+    'ikanman.com',
+    'manga.bilibili.com',
+    // Indonesian / Southeast Asian reader candidates
+    'komiku.id',
+    'komiku.org',
+    'komikcast.lol',
+    'komikindo.id',
+    'komikindo.pro',
+    'komikindo.tv',
+    'komikstation.co',
+    'komikmama.net',
+    'komikgue.com',
+    'westmanga.info',
+    'bacakomik.co',
+    'bacakomik.tv',
+    'komikindo.link',
+    'komikindo.xyz',
+    'komikfox.net'
+  ];
+
+  // True if hostname matches the recognized manhwa whitelist (exact or subdomain).
+  function isWhitelistedHostname(hostname) {
     if (!hostname) return false;
-    const h = hostname.toLowerCase();
+    const h = String(hostname).toLowerCase().replace(/\.$/, '');
+    return RECOGNIZED_MANHWA_WHITELIST.some(d => h === d || h.endsWith('.' + d));
+  }
+
+  // Checks the page's LIVE address against the recognized whitelist.
+  function isWhitelistedDomain() {
+    if (isWhitelistedHostname(window.location.hostname)) return true;
+    try {
+      const ancestors = window.location.ancestorOrigins;
+      if (ancestors) {
+        for (let i = 0; i < ancestors.length; i++) {
+          if (isWhitelistedHostname(new URL(ancestors[i]).hostname)) return true;
+        }
+      }
+    } catch (_) { /* ancestorOrigins not available - ignore */ }
+    return false;
+  }
+
+
+  // True if a single hostname (e.g. "www.youtube.com") matches the list exactly or as a subdomain.
+  function isBlockedHostname(hostname) {
+    if (!hostname) return false;
+    const h = String(hostname).toLowerCase().replace(/\.$/, '');
+    // Whitelisted subdomains (like manga.bilibili.com) are exempt from general parent blocks
+    if (isWhitelistedHostname(h)) return false;
     return AUTO_DETECT_DOMAIN_BLOCKLIST.some(d => h === d || h.endsWith('.' + d));
+  }
+
+  // Checks the page's LIVE address every time (never a cached copy).
+  // If this script ever runs inside an embedded frame, the parent pages are checked
+  // too, so a frame sitting inside YouTube is treated as YouTube.
+  function isBlockedDomain() {
+    if (isBlockedHostname(window.location.hostname)) return true;
+    try {
+      const ancestors = window.location.ancestorOrigins;
+      if (ancestors) {
+        for (let i = 0; i < ancestors.length; i++) {
+          if (isBlockedHostname(new URL(ancestors[i]).hostname)) return true;
+        }
+      }
+    } catch (_) { /* ancestorOrigins not available - ignore */ }
+    return false;
+  }
+
+  // A blocked site may only run if YOU flipped the on/off toggle ON (popup toggle or Alt+A).
+  // `overrideSource: 'toggle'` is only ever written by those two actions, so old
+  // or accidental saved entries (e.g. from moving sliders) do not count.
+  function hasDeliberateOverride(cfg) {
+    return !!cfg &&
+      cfg.enabled === true &&
+      cfg.isManualOverride === true &&
+      cfg.overrideSource === 'toggle';
+  }
+
+  // THE SINGLE CHOKE POINT: every code path that could start the light is checked here
+  // (called from inside activateAmbientEngine() and checkAutoDetectHeuristic()).
+  function isEngineAllowed(caller) {
+    if (!isBlockedDomain()) return true;
+    if (hasDeliberateOverride(settings)) {
+      debugLog(`allowed on blocked site ${window.location.hostname} | requested by ${caller} | reason: you turned the toggle ON for this site`);
+      return true;
+    }
+    debugLog(`blocked | ${caller} tried to start on ${window.location.hostname} | reason: site is on the blocklist and you have not toggled it ON`);
+    return false;
+  }
+
+  // Shuts everything down if we're on a blocked site without a deliberate toggle.
+  // Runs on startup and on in-page (single-page-app) navigation, e.g. YouTube video changes.
+  function enforceBlocklist(trigger) {
+    if (!isBlockedDomain() || hasDeliberateOverride(settings)) return;
+    settings.enabled = false;
+    const leftovers = document.getElementById('manhwa-ambient-stage') ||
+      document.getElementById('manhwa-ambient-backdrop') ||
+      document.getElementById('manhwa-ambient-svg-filters');
+    if (isActive || leftovers) {
+      debugLog(`shutting down | trigger: ${trigger} | reason: blocked site ${window.location.hostname}`);
+      deactivateAmbientEngine(`enforceBlocklist (${trigger})`);
+    }
+  }
+
+  function setupNavigationGuard() {
+    ['popstate', 'hashchange', 'pageshow'].forEach(evt => {
+      window.addEventListener(evt, () => {
+        enforceBlocklist(evt);
+        if (isWhitelistedDomain() && settings.autoDetect !== false && !userExplicitlyToggled && !isActive) {
+          settings.enabled = true;
+          activateAmbientEngine(`navigation (${evt}) (recognized manhwa whitelist)`);
+        } else {
+          // Single-page manhwa readers outside whitelist can switch chapters without reloading
+          startAutoDetectWatch(evt);
+        }
+      });
+    });
+    // YouTube's own single-page navigation events
+    ['yt-navigate-start', 'yt-navigate-finish'].forEach(evt => {
+      document.addEventListener(evt, () => enforceBlocklist(evt));
+    });
   }
 
   async function loadSettingsAndInit() {
     setupKeyboardShortcuts();
+    setupNavigationGuard();
 
     const isBlocked = isBlockedDomain();
+    debugLog(`init on ${window.location.hostname || 'local page'} | blocked site: ${isBlocked}`);
+
+    // Don't report "enabled" on a blocked site while storage is still loading
+    if (isBlocked) settings.enabled = false;
 
     try {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         chrome.storage.local.get(['globalSettings', 'domainOverrides'], (res) => {
           const global = res.globalSettings || {};
           const domainOverrides = res.domainOverrides || {};
-          const domainConfig = domainOverrides[currentDomain];
 
-          // On blocklisted domains, check if user explicitly toggled it ON in popup with isManualOverride: true
-          if (isBlocked) {
-            const hasManualOverride = domainConfig && domainConfig.isManualOverride === true && domainConfig.enabled === true;
-
-            if (!hasManualOverride) {
-              // Automatically delete any old false-positive cached auto-enable entry
-              if (domainConfig) {
-                delete domainOverrides[currentDomain];
-                chrome.storage.local.set({ domainOverrides });
-              }
-              settings = {
-                ...DEFAULT_SETTINGS,
-                ...global,
-                enabled: false,
-                isManualOverride: false
-              };
-              userExplicitlyToggled = false;
-              // Blocked domain without explicit user manual override -> stay completely inactive
-              return;
+          // Clean up stale saved settings for ANY blocked site that weren't created
+          // by a deliberate on/off toggle.
+          let cleaned = false;
+          for (const host of Object.keys(domainOverrides)) {
+            if (isBlockedHostname(host) && !hasDeliberateOverride(domainOverrides[host])) {
+              debugLog(`removed stale saved settings for blocked site ${host}`);
+              delete domainOverrides[host];
+              cleaned = true;
             }
           }
+          if (cleaned) chrome.storage.local.set({ domainOverrides });
 
-          if (domainConfig && typeof domainConfig.enabled !== 'undefined') {
-            userExplicitlyToggled = !!domainConfig.isManualOverride;
+          const domainConfig = domainOverrides[currentDomain];
+
+          // Blocked site without a deliberate toggle -> stay completely inactive
+          if (isBlocked && !hasDeliberateOverride(domainConfig)) {
+            settings = {
+              ...DEFAULT_SETTINGS,
+              ...global,
+              enabled: false,
+              isManualOverride: false
+            };
+            userExplicitlyToggled = false;
+            debugLog('blocked | loadSettingsAndInit | reason: blocked site, no toggle override saved - staying off');
+            enforceBlocklist('loadSettingsAndInit');
+            return;
           }
+
+          // Did you deliberately flip the on/off toggle (or Alt+A) on this site?
+          const manualOn = hasDeliberateOverride(domainConfig);
+          const manualOff = !!domainConfig && domainConfig.isManualOverride === true && domainConfig.enabled === false;
+          userExplicitlyToggled = manualOn || manualOff;
 
           settings = {
             ...DEFAULT_SETTINGS,
             ...global,
-            ...(domainConfig || {})
+            ...(domainConfig || {}),
+            // A saved "enabled: true" alone (e.g. from an earlier auto-detect or a slider
+            // save) no longer starts the light. Only a deliberate toggle ON does.
+            enabled: manualOn
           };
 
-          if (settings.enabled) {
-            activateAmbientEngine();
-          } else if (settings.autoDetect && !userExplicitlyToggled && !isBlocked) {
-            setTimeout(checkAutoDetectHeuristic, 300);
+          if (manualOn) {
+            activateAmbientEngine('loadSettingsAndInit (you toggled this site ON)');
+          } else if (manualOff) {
+            debugLog('staying off | loadSettingsAndInit | reason: you toggled this site OFF');
+          } else if (isWhitelistedDomain() && settings.autoDetect !== false) {
+            // Recognized manhwa/webtoon/manga platform: start automatically
+            settings.enabled = true;
+            activateAmbientEngine('loadSettingsAndInit (recognized manhwa whitelist)');
+            debugLog(`recognized manhwa platform: ${window.location.hostname} -> ambient light activated`);
+          } else {
+            // Outside recognized list (or autoDetect turned off): watch with heuristic
+            startAutoDetectWatch('page load (outside recognized whitelist)');
           }
         });
       } else {
-        if (!isBlocked) {
-          if (settings.enabled) {
-            activateAmbientEngine();
-          } else if (settings.autoDetect) {
-            setTimeout(checkAutoDetectHeuristic, 300);
-          }
-        } else {
-          settings.enabled = false;
-        }
+        // Standalone demo page (test/demo.html, no chrome.storage): start straight away.
+        // The blocklist guard inside activate still applies.
+        settings.enabled = true;
+        activateAmbientEngine('loadSettingsAndInit (demo page, no storage)');
       }
     } catch (err) {
       console.warn('[Manhwa Ambient] Storage initialization fallback:', err);
-      if (!isBlocked && settings.enabled) {
-        activateAmbientEngine();
+      if (isWhitelistedDomain() && settings.autoDetect !== false) {
+        settings.enabled = true;
+        activateAmbientEngine('loadSettingsAndInit (fallback, recognized manhwa whitelist)');
       } else {
-        settings.enabled = false;
+        startAutoDetectWatch('storage error fallback');
       }
     }
   }
@@ -163,8 +577,75 @@
   /* ============================================================
    * 3. SMART AUTO-DETECT MANHWA LAYOUT HEURISTIC
    * ============================================================ */
-  function checkAutoDetectHeuristic() {
-    if (isActive || isBlockedDomain()) return;
+
+  // Manhwa readers often load their images a bit later (lazy loading), so instead of
+  // checking only once, we re-check a few times and whenever new images appear,
+  // for up to AUTO_DETECT_WATCH_MS. The watch stops as soon as the light starts.
+  const AUTO_DETECT_RETRY_DELAYS_MS = [300, 1500, 4000, 8000];
+  const AUTO_DETECT_WATCH_MS = 60000;
+  let autoDetectTimers = [];
+  let autoDetectObserver = null;
+  let autoDetectDebounce = null;
+
+  function stopAutoDetectWatch() {
+    autoDetectTimers.forEach(t => clearTimeout(t));
+    autoDetectTimers = [];
+    clearTimeout(autoDetectDebounce);
+    if (autoDetectObserver) {
+      autoDetectObserver.disconnect();
+      autoDetectObserver = null;
+    }
+  }
+
+  function canAutoDetectRun() {
+    return !isActive && settings.autoDetect !== false && !userExplicitlyToggled && !isBlockedDomain();
+  }
+
+  function startAutoDetectWatch(reason) {
+    stopAutoDetectWatch();
+    if (!canAutoDetectRun()) {
+      if (isBlockedDomain()) {
+        debugLog(`auto-detect skipped | trigger: ${reason} | reason: blocked site`);
+      } else if (!isActive) {
+        debugLog(`auto-detect skipped | trigger: ${reason} | reason: ${settings.autoDetect === false ? 'auto-detect is turned off in the popup' : 'you toggled this site manually'}`);
+      }
+      return;
+    }
+    debugLog(`auto-detect watching for a manhwa reader | trigger: ${reason}`);
+
+    const runCheck = (label) => {
+      if (!canAutoDetectRun()) { stopAutoDetectWatch(); return; }
+      checkAutoDetectHeuristic(label);
+      if (isActive) stopAutoDetectWatch();
+    };
+
+    AUTO_DETECT_RETRY_DELAYS_MS.forEach(ms => {
+      autoDetectTimers.push(setTimeout(() => runCheck(`${reason}, check after ${ms}ms`), ms));
+    });
+
+    // Re-check (debounced) when new images are added or lazy images get their real source
+    if (document.body && typeof MutationObserver !== 'undefined') {
+      autoDetectObserver = new MutationObserver(() => {
+        clearTimeout(autoDetectDebounce);
+        autoDetectDebounce = setTimeout(() => runCheck(`${reason}, new images appeared`), 700);
+      });
+      autoDetectObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src', 'srcset']
+      });
+    }
+
+    autoDetectTimers.push(setTimeout(() => {
+      if (!isActive) debugLog(`auto-detect gave up | trigger: ${reason} | reason: no manhwa reader layout found`);
+      stopAutoDetectWatch();
+    }, AUTO_DETECT_WATCH_MS));
+  }
+
+  function checkAutoDetectHeuristic(caller = 'auto-detect') {
+    if (isActive) return;
+    if (!isEngineAllowed(`checkAutoDetectHeuristic (${caller})`)) return;
 
     // Strict Webtoon Strip Geometry Check:
     // 1. Rendered width >= 420px and rendered height >= 450px
@@ -225,16 +706,34 @@
 
     if (detectedStrip) {
       settings.enabled = true;
-      activateAmbientEngine();
-      showToast('Auto-detected Manhwa Reader', '✨');
+      if (activateAmbientEngine('checkAutoDetectHeuristic (manhwa strip found)')) {
+        showToast('Auto-detected Manhwa Reader', '✨');
+      }
     }
   }
 
   /* ============================================================
    * 4. ENGINE ACTIVATION & TEARDOWN
    * ============================================================ */
-  function activateAmbientEngine() {
-    if (isActive) return;
+  // Returns true if the engine is running after the call, false if it was refused.
+  function activateAmbientEngine(caller = 'unknown') {
+    if (isActive) return true;
+
+    // Gate 1: the light must be switched ON for this page. Only these can do that:
+    // auto-detect finding a manhwa reader, your popup toggle, Alt+A, or a saved
+    // deliberate toggle. (Sliders/presets/messages can't set `enabled`.)
+    if (settings.enabled !== true) {
+      debugLog(`not started | ${caller} | reason: light is not switched on here (only auto-detect or your toggle can do that)`);
+      return false;
+    }
+
+    // Gate 2 (safety net): no code path can start the light on a blocked site
+    if (!isEngineAllowed(`activateAmbientEngine <- ${caller}`)) {
+      settings.enabled = false;
+      return false;
+    }
+
+    debugLog(`started by ${caller} on ${window.location.hostname || 'local page'}`);
     isActive = true;
 
     ensureSvgFilter();
@@ -247,11 +746,15 @@
 
     discoverComicImages();
     scheduleSync();
+    return true;
   }
 
-  function deactivateAmbientEngine() {
-    if (!isActive) return;
+  // Always does a full cleanup (even if we think we're already off), so no
+  // leftover glow, backdrop, clones, SVG filter or Zen dimming can survive.
+  function deactivateAmbientEngine(reason = 'unknown') {
+    if (isActive) debugLog(`stopped | reason: ${reason}`);
     isActive = false;
+    clearTimeout(discoveryTimeout);
 
     // Disconnect observers
     if (intersectionObserver) {
@@ -314,6 +817,20 @@
     // Clear zen dimmed classes
     const dimmed = document.querySelectorAll('.manhwa-zen-dimmed');
     dimmed.forEach(el => el.classList.remove('manhwa-zen-dimmed'));
+
+    // Remove any leftover injected elements by ID (e.g. from an older copy of this script)
+    ['manhwa-ambient-stage', 'manhwa-ambient-backdrop', 'manhwa-ambient-svg-filters'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    document.querySelectorAll('.manhwa-clone-wrapper').forEach(el => el.remove());
+    document.querySelectorAll('.manhwa-ambient-source').forEach(el => el.classList.remove('manhwa-ambient-source'));
+
+    // Remove the CSS variables we set on the page root
+    ['--blur', '--manhwa-blur', '--intensity', '--manhwa-intensity', '--vibrance',
+      '--manhwa-vibrance', '--spread', '--manhwa-spread'].forEach(p => {
+      document.documentElement.style.removeProperty(p);
+    });
   }
 
   /* ============================================================
@@ -617,7 +1134,8 @@
   }
 
   function registerTrackedImage(img) {
-    if (candidateImages.has(img)) return;
+    // An image that finishes loading after shutdown must not re-mark the page
+    if (!isActive || candidateImages.has(img)) return;
 
     candidateImages.add(img);
     img.dataset.manhwaAmbientTracked = 'true';
@@ -974,35 +1492,48 @@
       const tag = (e.target && e.target.tagName) || '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
 
-      // Alt + A: Toggle Ambient Light
+      // Alt + A: Toggle Ambient Light (a deliberate toggle -> may override the blocklist)
       if (e.altKey && (e.key === 'a' || e.key === 'A')) {
         e.preventDefault();
         userExplicitlyToggled = true;
         settings.enabled = !settings.enabled;
         settings.isManualOverride = true;
+        settings.overrideSource = 'toggle';
         if (settings.enabled) {
-          activateAmbientEngine();
-          showToast('Ambient Light: Enabled', '✨');
+          if (activateAmbientEngine('Alt+A shortcut')) {
+            showToast('Ambient Light: Enabled', '✨');
+          }
         } else {
-          deactivateAmbientEngine();
+          deactivateAmbientEngine('Alt+A shortcut (turned off)');
           showToast('Ambient Light: Disabled', '🌙');
         }
         saveSettingsForDomain(true);
       }
 
-      // Alt + Z: Toggle Zen Cinema Mode
+      // Alt + Z: Toggle Zen Cinema Mode (NOT a deliberate on/off toggle)
       if (e.altKey && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
-        settings.zenMode = !settings.zenMode;
-        if (!isActive && settings.zenMode) {
-          activateAmbientEngine();
-        } else {
-          updateZenMode();
+        // Zen only works while the light is running; it never switches the light on
+        if (!isActive) {
+          if (!isBlockedDomain()) {
+            showToast('Ambient Light is off here — press Alt+A to turn it on', '🌙');
+          }
+          debugLog('Alt+Z ignored | reason: light is not running on this page');
+          return;
         }
+        settings.zenMode = !settings.zenMode;
+        updateZenMode();
         showToast(settings.zenMode ? 'Zen Cinema Mode: Active' : 'Zen Cinema Mode: Off', '🧘');
         saveSettingsForDomain();
       }
     });
+  }
+
+  // Settings messages (sliders, presets, demo page) may change the LOOK of the light,
+  // but never switch it on/off or create a manual override. Only the toggle / Alt+A can.
+  function withoutProtectedKeys(incoming) {
+    const { enabled, isManualOverride, overrideSource, ...rest } = incoming || {};
+    return rest;
   }
 
   /* ============================================================
@@ -1022,25 +1553,32 @@
           break;
 
         case 'TOGGLE_ENABLED':
+          // Only sent by the popup's on/off toggle -> a deliberate choice
           userExplicitlyToggled = true;
           settings.enabled = !!message.enabled;
-          settings.isManualOverride = !!message.isManualOverride;
+          settings.isManualOverride = true;
+          settings.overrideSource = 'toggle';
           if (settings.enabled) {
-            activateAmbientEngine();
+            activateAmbientEngine('popup on/off toggle');
           } else {
-            deactivateAmbientEngine();
+            deactivateAmbientEngine('popup on/off toggle (turned off)');
           }
-          saveSettingsForDomain(!!message.isManualOverride);
+          saveSettingsForDomain(true);
           sendResponse({ success: true, isActive: isActive });
           break;
 
         case 'UPDATE_SETTINGS':
           if (message.settings) {
-            settings = { ...settings, ...message.settings };
+            const autoDetectWasOn = settings.autoDetect !== false;
+            settings = { ...settings, ...withoutProtectedKeys(message.settings) };
+            // React to the popup's "Auto-Detect" option being switched
+            const autoDetectIsOn = settings.autoDetect !== false;
+            if (autoDetectIsOn && !autoDetectWasOn) startAutoDetectWatch('auto-detect turned on in popup');
+            if (!autoDetectIsOn && autoDetectWasOn) stopAutoDetectWatch();
             if (settings.enabled && !isActive) {
-              activateAmbientEngine();
+              activateAmbientEngine('popup UPDATE_SETTINGS (slider/preset/option)');
             } else if (!settings.enabled && isActive) {
-              deactivateAmbientEngine();
+              deactivateAmbientEngine('popup UPDATE_SETTINGS');
             } else if (isActive) {
               applySettingsToDOM();
             }
@@ -1050,10 +1588,16 @@
           break;
 
         case 'RESET_DEFAULTS':
-          settings = { ...DEFAULT_SETTINGS, enabled: true };
-          if (!isActive) {
-            activateAmbientEngine();
-          } else {
+          // Reset the look, but keep the current on/off state (it used to force ON)
+          settings = {
+            ...DEFAULT_SETTINGS,
+            enabled: !!settings.enabled,
+            isManualOverride: settings.isManualOverride,
+            overrideSource: settings.overrideSource
+          };
+          if (settings.enabled && !isActive) {
+            activateAmbientEngine('popup Reset button');
+          } else if (isActive) {
             applySettingsToDOM();
           }
           saveSettingsForDomain();
@@ -1067,15 +1611,17 @@
 
   // Standalone window message listener for demo/test environments
   window.addEventListener('message', (event) => {
+    // Only accept messages from this same page (not from embedded frames / ads)
+    if (event.source !== window) return;
     if (!event.data) return;
 
     if (event.data.type === 'MANHWA_UPDATE_SETTINGS') {
       if (event.data.settings) {
-        settings = { ...settings, ...event.data.settings };
+        settings = { ...settings, ...withoutProtectedKeys(event.data.settings) };
         if (settings.enabled && !isActive) {
-          activateAmbientEngine();
+          activateAmbientEngine('window message MANHWA_UPDATE_SETTINGS');
         } else if (!settings.enabled && isActive) {
-          deactivateAmbientEngine();
+          deactivateAmbientEngine('window message MANHWA_UPDATE_SETTINGS');
         } else if (isActive) {
           applySettingsToDOM();
         }
@@ -1088,30 +1634,34 @@
       applySettingsToDOM();
     } else if (event.data.type === 'MANHWA_APPLY_PRESET') {
       if (event.data.preset) {
-        settings = { ...settings, ...event.data.preset };
+        settings = { ...settings, ...withoutProtectedKeys(event.data.preset) };
         applySettingsToDOM();
       }
     } else if (event.data.type === 'MANHWA_TOGGLE_ZEN') {
+      if (!isActive) return; // Zen dimming only makes sense while the light is running
       settings.zenMode = !settings.zenMode;
       updateZenMode();
       showToast(settings.zenMode ? 'Zen Cinema Mode: Active' : 'Zen Cinema Mode: Off', '🧘');
     }
   });
 
+  // The ONLY place settings get saved. On blocked sites, nothing is kept unless
+  // you deliberately toggled the light ON there.
   function saveSettingsForDomain(isManual = false) {
     if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
 
     chrome.storage.local.get(['domainOverrides'], (res) => {
       const overrides = res.domainOverrides || {};
-      const isBlocked = isBlockedDomain();
+      const entry = {
+        ...settings,
+        isManualOverride: isManual || !!settings.isManualOverride
+      };
+      if (isManual) entry.overrideSource = 'toggle';
 
-      if (isBlocked && (!settings.enabled || (!isManual && !settings.isManualOverride))) {
+      if (isBlockedDomain() && !hasDeliberateOverride(entry)) {
         delete overrides[currentDomain];
       } else {
-        overrides[currentDomain] = {
-          ...settings,
-          isManualOverride: isManual || !!settings.isManualOverride
-        };
+        overrides[currentDomain] = entry;
       }
       chrome.storage.local.set({ domainOverrides: overrides });
     });
