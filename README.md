@@ -199,6 +199,17 @@ A full interactive test environment is included in `test/demo.html`:
 
 ---
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=katenshinmori%2Fwebtoon-manhwa-ambient-light&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=katenshinmori/webtoon-manhwa-ambient-light&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=katenshinmori/webtoon-manhwa-ambient-light&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=katenshinmori/webtoon-manhwa-ambient-light&type=date&legend=top-left" />
+ </picture>
+</a>
+
+---
 ## 📄 License
 
 Open-source under the [MIT License](LICENSE). Contributions, issues, and feature suggestions are welcome!
