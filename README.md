@@ -50,6 +50,7 @@ Inspired by **"[Corsair LS100](https://www.corsair.com/us/en)"** and **"[Ambient
   - **Full Monitor:** Stretches edge-to-edge horizontally across the entire screen.
 - 🧠 **Smart Auto-Detect with False-Positive Prevention & Blocklist:**
   - Built-in domain blocklist (`youtube.com`, `twitch.tv`, `netflix.com`, `reddit.com`, `x.com`, etc.) with stale override cache cleanup.
+  > It **SHOULD** block most of the sites that is non manwha related but there is sometimes where you have to manually close it for that site but it stays off when you turn off for that specific site!
   - Strict webtoon strip geometry: requires $\ge 3$ consecutive non-link images ($w \ge 420\text{px}, h \ge 450\text{px}, w/h \le 1.4$) aligned in a single vertical column ($<15\text{px}$ drift) and stacked flush ($<40\text{px}$ gap).
 - 🧘 **Zen Cinema Mode (Auto-Dim Distracting UI):**
   - Dims sticky navigation bars, floating Discord widgets, and "Report" buttons to 0.08 opacity, restoring them on hover.
