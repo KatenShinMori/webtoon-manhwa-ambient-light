@@ -1,6 +1,7 @@
 Halo Preview
 
-<img width="1280" height="654" alt="halo glow" src="https://github.com/user-attachments/assets/a07c5472-fe1a-402d-b28c-58906f1d32ac" />
+<img width="1280" height="654" alt="halo glow" src="https://github.com/user-attachments/assets/bca7e4af-3fd3-452d-82dc-77f7c1e313d0" />
+
 
 Full Screen Preview
 
