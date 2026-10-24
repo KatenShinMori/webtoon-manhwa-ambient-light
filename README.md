@@ -1,3 +1,12 @@
+Halo Preview
+
+<img width="1280" height="654" alt="halo glow" src="https://github.com/user-attachments/assets/a07c5472-fe1a-402d-b28c-58906f1d32ac" />
+
+Full Screen Preview
+
+<img width="1280" height="650" alt="full screen glow" src="https://github.com/user-attachments/assets/1bf96f34-a5dd-4f29-9f50-aadcbe2f4a40" />
+
+
 # Webtoon & Manhwa Ambient Light 🌌📖
 
 > **A real-time, hardware-accelerated ambient lighting Chrome Extension for desktop manhwa, webtoon, and manga readers.**
